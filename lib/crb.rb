@@ -5,6 +5,14 @@ require 'cucumber/rb_support/rb_dsl'
 require 'irb'
 
 module CRB
+  class DummyScenario
+    def method_missing(*args)
+      puts "CRB does not support Scenarios in Hooks"
+      puts "DummyScenario was called using: #{args.inspect}"
+      {}
+    end
+  end
+  
   module World
     include Cucumber::RbSupport::RbDsl
 
@@ -50,7 +58,11 @@ module CRB
         hooks[key].each do |hook|
           block = hook.instance_variable_get('@proc')
           if block
-            instance_eval(&block)
+            method_name = "___dummy_method_#{Time.now.to_i}"
+            self.class.class_eval do
+              define_method(method_name, &block)
+            end 
+            self.send(method_name, DummyScenario.new)
             count += 1
           else
             # cuke is newer than 1.0
